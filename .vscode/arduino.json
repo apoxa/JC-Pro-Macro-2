@@ -1,0 +1,6 @@
+{
+    "port": "/dev/tty.usbmodemHIDPH1",
+    "board": "arduino:avr:leonardo",
+    "sketch": "code/JCPM/JCPM.ino",
+    "programmer": "arduino:avrispmkii"
+}
