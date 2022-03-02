@@ -1,6 +1,6 @@
 {
-    "port": "/dev/tty.usbmodem14331301",
+    "port": "/dev/tty.usbmodemHIDPH1",
     "board": "arduino:avr:leonardo",
-    "sketch": "code/apoxa/apoxa.ino",
+    "sketch": "code/JCPM/JCPM.ino",
     "programmer": "arduino:avrispmkii"
 }
