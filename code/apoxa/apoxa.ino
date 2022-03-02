@@ -44,9 +44,6 @@ button button;
 const short maximumEncoderValue = 32767;
 short EncoderOldValue = maximumEncoderValue / 2;
 
-auto boardIo = internalDigitalIo();
-MultiIoAbstractionRef multiIo = multiIoExpander(100);
-
 // Screen setup =============================================
 
 #include <Adafruit_GFX.h>
