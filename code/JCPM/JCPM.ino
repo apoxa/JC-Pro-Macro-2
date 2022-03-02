@@ -148,6 +148,12 @@ void loop() {
   SW8 = digitalRead(16);
   SW9 = digitalRead(10);
   SW10 = digitalRead(8);
+
+  // Jump into upload mode for lower mostleft and lower mostright buttons
+  if (SW2 == 0 && SW9 == 0) {
+    screenUpload();
+    delay(3600000); // I don't know why, but this delay allows to simply upload code.
+  }
   
   newPosition = myEnc.read();
   
@@ -690,6 +696,14 @@ void screenJiggle(){
   display.setCursor(0,10);
   display.println("Rando");
   display.print("Mouse!");
+  display.display();
+}
+
+void screenUpload(){
+  display.setTextSize(3);
+  display.clearDisplay();
+  display.setCursor(0,10);
+  display.println("Upload Code!");
   display.display();
 }
 
