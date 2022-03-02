@@ -2,7 +2,15 @@
 #include <TaskManagerIO.h>
 #include <HID-Project.h>
 
-#define DEBUG
+//#define DEBUG
+
+const char modeArray[] = {0, 1, 2};
+const char modeArrayLength = (sizeof(modeArray) / sizeof(modeArray[0]));
+char inputModeIndex = 0;
+char inputMode = 0;
+
+bool tasksRunning = false;
+taskid_t runningTaskId = 0;
 
 // Set higher hold threshold, default is 20
 #define HOLD_THRESHOLD 100
@@ -21,10 +29,10 @@
 #define ENCLEFT 10
 #define ENCRIGHT 11
 
-struct button
+struct buttons
 {
     unsigned char s[ENCRIGHT + 1];
-    button()
+    buttons()
     {
         s[SW1] = 4;      // encoder button
         s[SW2] = 15;     // bottom row, leftmost button
@@ -38,7 +46,7 @@ struct button
     }
 };
 
-button button;
+buttons button;
 
 // the maximum (0 based) value that we want the encoder to represent.
 const short maximumEncoderValue = 32767;
@@ -78,9 +86,6 @@ bool underLight = false;
 //
 void muteVolume(pinid_t pin, bool heldDown)
 {
-#ifdef DEBUG
-    Serial.println("Encoder button pressed");
-#endif
     Consumer.write(MEDIA_VOLUME_MUTE);
     delay(100);
 }
@@ -93,11 +98,6 @@ void changeVolume(short newValue)
     // Fix startup of pad
     if (newValue == EncoderOldValue)
         return;
-
-#ifdef DEBUG
-    Serial.print("Encoder change ");
-    Serial.println(newValue);
-#endif
 
     Consumer.write((newValue > EncoderOldValue) ? MEDIA_VOLUME_UP : MEDIA_VOLUME_DOWN);
     EncoderOldValue = newValue;
@@ -141,20 +141,53 @@ void setup()
     // Global listener for switch mode button
     // single presses cycle through modes
     // if button is held, code upload mode is entered
-    switches.addSwitch(button.s[SW10], [](pinid_t pin, bool held)
-                       {
-#ifdef DEBUG
-        Serial.println("SWITCH MODE");
-#endif
-        resetSwitches();
-        if (held) {
-          screenBig("Upload Code!");
-          delay(3600000);
-        } });
+    switches.addSwitch(button.s[SW10], &modeChange);
 
     // Setup default mode for buttons
-    taskManager.scheduleOnce(3, &DefaultMode, TIME_SECONDS);
+    taskManager.scheduleOnce(3, &VolumeMode, TIME_SECONDS);
 }
+
+void modeChange(pinid_t pin, bool held)
+{
+#ifdef DEBUG
+    Serial.println("SWITCH MODE");
+#endif
+    if (tasksRunning)
+    {
+        taskManager.cancelTask(runningTaskId);
+        tasksRunning = false;;
+    }
+    resetSwitches();
+    resetLEDs();
+    if (held)
+    {
+        screenBig("Upload Code!");
+        delay(3600000);
+    }
+    if (inputModeIndex < modeArrayLength)
+    {
+        inputModeIndex++;
+    }
+    if (inputModeIndex == modeArrayLength)
+    {
+        inputModeIndex = 0;
+    }
+    inputMode = modeArray[inputModeIndex];
+    switch (inputMode)
+    {
+    case 0:
+        VolumeMode();
+        break;
+    case 1:
+        jiggleMode();
+        break;
+    case 2:
+        displayOff();
+        break;
+    default:
+        break;
+    }
+};
 
 void loop()
 {
@@ -172,7 +205,13 @@ void resetSwitches()
     }
 }
 
-void DefaultMode()
+void resetLEDs()
+{
+    pixels.clear();
+    pixels.show();
+}
+
+void VolumeMode()
 {
     // now we add the switches, we dont want the spinwheel button to repeat, so leave off the last parameter
     // which is the repeat interval (millis / 20 basically) Repeat button does repeat as we can see.
@@ -221,10 +260,28 @@ void DefaultMode()
     screenVolume();
 }
 
-void screenClear()
+void jiggleMode()
 {
-    display.clearDisplay();
-    display.display();
+    runningTaskId = taskManager.scheduleFixedRate(100, []()
+                                                  {
+        long randNumber = random(-50, 50);
+        long randNumber1 = random(-50, 50);
+        Mouse.move(randNumber, randNumber1);
+        for (int i = 0; i <= 7; i++)
+        {
+            int xMap = map(random(-50, 50), -50, 50, 0, 100);
+            int yMap = map(random(-50, 50), -50, 50, 0, 100);
+            int zMap = map(random(-50, 50), -50, 50, 0, 100);
+            pixels.setPixelColor(i, pixels.Color(xMap, yMap, zMap));
+        }
+        pixels.show(); delay(100); });
+    tasksRunning = true;
+
+    screenBig("Rando\nMouse!");
+}
+
+void displayOff() {
+    display.clearDisplay(); display.display();
 }
 
 void screenWelcome()
