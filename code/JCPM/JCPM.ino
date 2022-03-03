@@ -150,7 +150,7 @@ void loop() {
   SW10 = digitalRead(8);
 
   // Jump into upload mode for lower mostleft and lower mostright buttons
-  if (SW2 == 0 && SW9 == 0) {
+  if (SW9 == 0 && SW10 == 0) {
     screenUpload();
     delay(3600000); // I don't know why, but this delay allows to simply upload code.
   }
