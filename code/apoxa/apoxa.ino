@@ -1,56 +1,48 @@
-#include <IoAbstraction.h>
-#include <TaskManagerIO.h>
+// Example for JC Pro Macro board
+// set up to work in Mac OS
+// Includes support for 1306 display
+// Reference: https://github.com/NicoHood/HID/blob/master/src/KeyboardLayouts/ImprovedKeylayouts.h
+// Reference: https://arduinogetstarted.com/tutorials/arduino-button-long-press-short-press
+
+// Declare variables etc=========================================
+
+// DEBUG enables some serial debugging messages
+// #define DEBUG
+// This is the delay after each keypress
+#define KEYDELAY 100
+
+bool SW1 = false; // encoder button
+bool SW2 = false; // lower-left keyswitch
+bool SW3 = false;
+bool SW4 = false;
+bool SW5 = false;
+bool SW6 = false;
+bool SW7 = false; // upper-right keyswitch
+bool SW8 = false;
+bool SW9 = false;  // lower-right keyswitch
+bool SW10 = false; // JCPM 2 mode switch
+
+bool underLight = false;
+
+bool increment = false;
+bool decrement = false;
+long oldPosition;
+long newPosition;
+int inputMode = 0;
+
+int modeArray[] = {0, 1}; // adjust this array to modify sequence of modes - as written, change to {0, 1, 2, 3, 4, 5} to access all modes
+int inputModeIndex = 0;
+int modeArrayLength = (sizeof(modeArray) / sizeof(modeArray[0]));
+
+#include <SerialCommands.h>
+char serial_command_buffer_[128];
+SerialCommands serial_commands_(&Serial, serial_command_buffer_, sizeof(serial_command_buffer_), "\r\n", " ");
+
+// Encoder setup =============================================
+
+#include <Encoder.h>
 #include <HID-Project.h>
-
-//#define DEBUG
-
-const char modeArray[] = {0, 1, 2};
-const char modeArrayLength = (sizeof(modeArray) / sizeof(modeArray[0]));
-char inputModeIndex = 0;
-char inputMode = 0;
-
-bool tasksRunning = false;
-taskid_t runningTaskId = 0;
-
-// Set higher hold threshold, default is 20
-#define HOLD_THRESHOLD 100
-
-// These defines are arbitrary, but this is a simple hack to build a hash-like array.
-#define SW1 0
-#define SW2 1
-#define SW3 2
-#define SW4 3
-#define SW5 4
-#define SW6 5
-#define SW7 6
-#define SW8 7
-#define SW9 8
-#define SW10 9
-#define ENCLEFT 10
-#define ENCRIGHT 11
-
-struct buttons
-{
-    unsigned char s[ENCRIGHT + 1];
-    buttons()
-    {
-        s[SW1] = 4;      // encoder button
-        s[SW2] = 15;     // bottom row, leftmost button
-        s[SW3] = A0;     // bottom row, second-to-leftmost button
-        s[SW4] = A1;     // bottom row, second-to-rightmost button
-        s[SW9] = 10;     // bottom row, rightmost-button
-        s[SW7] = 14;     // top row, right button
-        s[SW10] = 8;     // left button under encoder, "switch mode" button
-        s[ENCLEFT] = 1;  // encoder left spin
-        s[ENCRIGHT] = 0; // encoder right spin
-    }
-};
-
-buttons button;
-
-// the maximum (0 based) value that we want the encoder to represent.
-const short maximumEncoderValue = 32767;
-short EncoderOldValue = maximumEncoderValue / 2;
+Encoder myEnc(1, 0); // if rotation is backwards, swap 0 and 1
 
 // Screen setup =============================================
 
@@ -61,6 +53,12 @@ short EncoderOldValue = maximumEncoderValue / 2;
 #define OLED_RESET 4        // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// NeoPixel setup =============================================
+
+// NeoPixel Ring simple sketch (c) 2013 Shae Erisson
+// Released under the GPLv3 license to match the rest of the
+// Adafruit NeoPixel library
 
 #include <Adafruit_NeoPixel.h>
 #ifdef __AVR__
@@ -79,214 +77,287 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 // strandtest example for more information on possible values.
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
-bool underLight = false;
+#define DELAYVAL 500 // Time (in milliseconds) to pause between pixels
 
-//
-// When the spinwheel is clicked, this function will be run as we registered it as a callback
-//
-void muteVolume(pinid_t pin, bool heldDown)
+//============================================================
+
+void cmd_unrecognized(SerialCommands *sender, const char *cmd)
 {
-    Consumer.write(MEDIA_VOLUME_MUTE);
-    delay(100);
+    sender->GetSerial()->print("ERROR: Unrecognized command [");
+    sender->GetSerial()->print(cmd);
+    sender->GetSerial()->println("]");
 }
 
-//
-// Each time the encoder value changes, this function runs, as we registered it as a callback
-//
-void changeVolume(short newValue)
+void cmd_led(SerialCommands *sender)
 {
-    // Fix startup of pad
-    if (newValue == EncoderOldValue)
+    char *lednum_str = sender->Next();
+    if (lednum_str == NULL)
+    {
+#ifdef DEBUG
+        sender->GetSerial()->println("ERROR 1");
+#endif
         return;
+    }
+    char lednum = atoi(lednum_str);
 
-    Consumer.write((newValue > EncoderOldValue) ? MEDIA_VOLUME_UP : MEDIA_VOLUME_DOWN);
-    EncoderOldValue = newValue;
-    delay(20);
+    char *r_str = sender->Next();
+    if (r_str == NULL)
+    {
+#ifdef DEBUG
+        sender->GetSerial()->println("ERROR r");
+#endif
+        return;
+    }
+    char r = atoi(r_str);
+
+    char *g_str = sender->Next();
+    if (g_str == NULL)
+    {
+#ifdef DEBUG
+        sender->GetSerial()->println("ERROR g");
+#endif
+        return;
+    }
+    char g = atoi(g_str);
+
+    char *b_str = sender->Next();
+    if (b_str == NULL)
+    {
+#ifdef DEBUG
+        sender->GetSerial()->println("ERROR b");
+#endif
+        return;
+    }
+    char b = atoi(b_str);
+
+#ifdef DEBUG
+    sender->GetSerial()->print(lednum);
+    sender->GetSerial()->print(" ");
+    sender->GetSerial()->print(r);
+    sender->GetSerial()->print(" ");
+    sender->GetSerial()->print(g);
+    sender->GetSerial()->print(" ");
+    sender->GetSerial()->println(b);
+#endif
+
+    pixels.setPixelColor(lednum, r, g, b);
+    pixels.show();
 }
+
+SerialCommand cmd_led_("LED", cmd_led);
 
 void setup()
 {
-    delay(5000); // WAIT FOR PROGRAMMING!
-    taskManager.scheduleOnce(1, &screenWelcome, TIME_SECONDS);
-#ifdef DEBUG
-    Serial.begin(115200);
-#endif
-
+    Serial.begin(57600);
+    serial_commands_.AddCommand(&cmd_led_);
+    serial_commands_.SetDefaultHandler(&cmd_unrecognized);
     // No TX and RX leds, please.
     pinMode(LED_BUILTIN_TX, INPUT);
     pinMode(LED_BUILTIN_RX, INPUT);
+    pinMode(4, INPUT_PULLUP);  // SW1 pushbutton (encoder button)
+    pinMode(15, INPUT_PULLUP); // SW2 pushbutton
+    pinMode(A0, INPUT_PULLUP); // SW3 pushbutton
+    pinMode(A1, INPUT_PULLUP); // SW4 pushbutton
+    pinMode(A2, INPUT_PULLUP); // SW5 pushbutton
+    pinMode(A3, INPUT_PULLUP); // SW6 pushbutton
+    //===============new pins for JCPM
+
+    pinMode(14, INPUT_PULLUP); // SW7 pushbutton
+    pinMode(16, INPUT_PULLUP); // SW8 pushbutton
+    pinMode(10, INPUT_PULLUP); // SW9 pushbutton
+    pinMode(8, INPUT_PULLUP);  // SW10 pushbutton - acts as mode switch
+
+    //================end new pins
 
     randomSeed(analogRead(A9));
 
     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
     if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
     {
+        // Serial.println(F("SSD1306 allocation failed"));
         for (;;)
             ; // Don't proceed, loop forever
     }
     display.setRotation(2);              // sets rotation 1 through 4 (2 = 180º rotation vs 4)
     display.setTextColor(SSD1306_WHITE); // Draw white text
-    display.invertDisplay(0);
 
-    // Initialise NeoPixels
-    pixels.begin();
+    // NeoPixel setup=========================================
+    pixels.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
     pixels.clear();
     pixels.show();
-
-    // First we set up the switches library, giving it the task manager and tell it to use arduino pins
-    // We could also of chosen IO through an i2c device that supports interrupts.
-    // If you want to use PULL DOWN instead of PULL UP logic, change the true to false below.
-    switches.initialise(ioUsingArduino(), true);
-
-    // Global listener for switch mode button
-    // single presses cycle through modes
-    // if button is held, code upload mode is entered
-    switches.addSwitch(button.s[SW10], &modeChange);
-
-    // Setup default mode for buttons
-    taskManager.scheduleOnce(3, &VolumeMode, TIME_SECONDS);
 }
 
-void modeChange(pinid_t pin, bool held)
+void loop()
 {
-#ifdef DEBUG
-    Serial.println("SWITCH MODE");
-#endif
-    if (tasksRunning)
-    {
-        taskManager.cancelTask(runningTaskId);
-        tasksRunning = false;;
-    }
-    resetSwitches();
-    resetLEDs();
-    if (held)
+    // By inverting the values I can use true for a pressed button instead of false, since these are INPUT_PULLUP.
+    SW1 = !digitalRead(4);
+    SW2 = !digitalRead(15);
+    SW3 = !digitalRead(A0);
+    SW4 = !digitalRead(A1);
+    SW5 = !digitalRead(A2);
+    SW6 = !digitalRead(A3);
+    SW7 = !digitalRead(14);
+    SW8 = !digitalRead(16);
+    SW9 = !digitalRead(10);
+    SW10 = !digitalRead(8);
+
+    serial_commands_.ReadSerial();
+
+    // Switch to program mode if left bottom and top right button are pressed at the same time
+    if (SW2 && SW7)
     {
         screenBig("Upload Code!");
-        delay(3600000);
+        delay(600); // Wait for 10 minutes to reprogram, should be more than enough
     }
-    if (inputModeIndex < modeArrayLength)
+
+    newPosition = myEnc.read();
+    if (newPosition > (oldPosition + 2))
     {
-        inputModeIndex++;
+        increment = true;
     }
-    if (inputModeIndex == modeArrayLength)
+    else if (newPosition < (oldPosition - 2))
     {
-        inputModeIndex = 0;
+        decrement = true;
     }
-    inputMode = modeArray[inputModeIndex];
+    oldPosition = newPosition;
+
+    //=========change mode=================
+
+    if (SW10)
+    {
+        if (inputModeIndex < modeArrayLength)
+        {
+            inputModeIndex++;
+            inputMode = modeArray[inputModeIndex];
+        }
+        if (inputModeIndex == modeArrayLength)
+        {
+            inputModeIndex = 0;
+            inputMode = modeArray[inputModeIndex];
+        }
+        pixels.clear();
+        pixels.show();
+        delay(KEYDELAY);
+    }
+
+    //======select input mode:=======
+
     switch (inputMode)
     {
     case 0:
-        VolumeMode();
+        volume();
         break;
     case 1:
-        jiggleMode();
-        break;
-    case 2:
-        displayOff();
+        jiggler();
         break;
     default:
         break;
     }
-};
-
-void loop()
-{
-    taskManager.runLoop();
 }
 
-void resetSwitches()
+void volume()
 {
-    for (char i = 0; i < (sizeof(button.s) / sizeof(button.s[0])); i++)
+    if (increment)
     {
-        // skip "switch mode" button
-        if (i == SW10)
-            continue;
-        switches.removeSwitch(button.s[i]);
+        Consumer.write(MEDIA_VOLUME_UP);
+        delay(KEYDELAY);
     }
-}
+    else if (decrement)
+    {
+        Consumer.write(MEDIA_VOLUME_DOWN);
+        delay(KEYDELAY);
+    }
+    increment = decrement = false;
 
-void resetLEDs()
-{
-    pixels.clear();
-    pixels.show();
-}
+    if (SW1)
+    {
+        Consumer.write(MEDIA_VOLUME_MUTE);
+        delay(KEYDELAY);
+    }
 
-void VolumeMode()
-{
-    // now we add the switches, we dont want the spinwheel button to repeat, so leave off the last parameter
-    // which is the repeat interval (millis / 20 basically) Repeat button does repeat as we can see.
-    switches.addSwitch(button.s[SW1], &muteVolume);
-
-    // now we set up the rotary encoder, first we give the A pin and the B pin.
-    // we give the encoder a max value of 128, always minumum of 0.
-    setupRotaryEncoderWithInterrupt(button.s[ENCLEFT], button.s[ENCRIGHT], &changeVolume);
-    switches.changeEncoderPrecision(maximumEncoderValue, EncoderOldValue);
-
-    switches.addSwitch(button.s[SW2], [](pinid_t pin, bool held)
-                       {
-        if (held) return;
+    if (SW6)
+    { // tab to next browser tab Firefox or Chrome
         Keyboard.press(KEY_LEFT_CTRL);
-        Keyboard.press(KEY_LEFT_ALT);
-        Keyboard.press(KEY_LEFT_WINDOWS);
-        Keyboard.press(KEY_F12);
+        Keyboard.press(KEY_TAB);
         Keyboard.releaseAll();
-        delay(50); });
-    switches.addSwitch(button.s[SW3], [](pinid_t pin, bool held)
-                       {
-        if (held) return;
+        delay(KEYDELAY);
+    }
+    if (SW5)
+    { // tab to previous browser tab Firefox or Chrome
+        Keyboard.press(KEY_LEFT_SHIFT);
+        Keyboard.press(KEY_LEFT_CTRL);
+        Keyboard.press(KEY_TAB);
+        Keyboard.releaseAll();
+        delay(KEYDELAY);
+    }
+    if (SW3)
+    {
         Keyboard.press(KEY_LEFT_CTRL);
         Keyboard.press(KEY_LEFT_ALT);
         Keyboard.press(KEY_LEFT_WINDOWS);
         Keyboard.press(KEY_F11);
         Keyboard.releaseAll();
-        delay(50); });
+        delay(KEYDELAY);
+    }
+    if (SW2)
+    {
+        Keyboard.press(KEY_LEFT_CTRL);
+        Keyboard.press(KEY_LEFT_ALT);
+        Keyboard.press(KEY_LEFT_WINDOWS);
+        Keyboard.press(KEY_F12);
+        Keyboard.releaseAll();
+        delay(KEYDELAY);
+    }
 
-    switches.addSwitch(button.s[SW7], [](pinid_t pin, bool held)
-                       {
-        if (held) return;
+    if (SW7)
+    {
+        uint8_t r = (!underLight) ? 140 : 0;
+        uint8_t g = (!underLight) ? 0 : 0;
+        uint8_t b = (!underLight) ? 130 : 0;
         for (int i = 8; i < 12; i++)
         {
-            if (underLight) {
-                pixels.setPixelColor(i, 0,0,0);
-            }
-            else {
-                pixels.setPixelColor(i, 30,255,70);
-            }
+            pixels.setPixelColor(i, r, g, b);
         }
+        pixels.show();
         underLight = !underLight;
-        pixels.show(); // Show results
-        delay(100); });
+        delay(KEYDELAY);
+    }
 
     screenVolume();
 }
 
-void jiggleMode()
+void jiggler()
 {
-    runningTaskId = taskManager.scheduleFixedRate(100, []()
-                                                  {
-        long randNumber = random(-50, 50);
-        long randNumber1 = random(-50, 50);
-        Mouse.move(randNumber, randNumber1);
-        for (int i = 0; i <= 7; i++)
-        {
-            int xMap = map(random(-50, 50), -50, 50, 0, 100);
-            int yMap = map(random(-50, 50), -50, 50, 0, 100);
-            int zMap = map(random(-50, 50), -50, 50, 0, 100);
-            pixels.setPixelColor(i, pixels.Color(xMap, yMap, zMap));
-        }
-        pixels.show(); delay(100); });
-    tasksRunning = true;
+    // Serial.print("commence to jiggling");
+    long randNumber = random(-50, 50);
+    long randNumber1 = random(-50, 50);
+    Mouse.move(randNumber, randNumber1);
+    delay(100);
+    for (int i = 0; i <= 7; i++)
+    {
+        int xMap = map(random(-50, 50), -50, 50, 0, 100);
+        int yMap = map(random(-50, 50), -50, 50, 0, 100);
+        int zMap = map(random(-50, 50), -50, 50, 0, 100);
+        pixels.setPixelColor(i, xMap, yMap, zMap);
+    }
+    pixels.show(); // Show results
 
-    screenBig("Rando\nMouse!");
+    screenBig("Rando Mouse!");
 }
 
-void displayOff() {
-    display.clearDisplay(); display.display();
-}
+//======================.96" oled screen=======================
 
-void screenWelcome()
+void screenVolume()
 {
-    screenBig("Welcome");
+    display.setTextSize(1);
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("MUTE |     |TAB+ |LIT");
+    display.println("");
+    display.println("VOL- |VOL+ |TAB- |   ");
+    display.println("");
+    display.println("MUTE |HAND |     |   ");
+    display.display();
 }
 
 void screenBig(char *message)
@@ -295,19 +366,5 @@ void screenBig(char *message)
     display.setTextSize(3);
     display.setCursor(0, 10);
     display.println(message);
-    display.display();
-}
-
-void screenVolume()
-{
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setCursor(0, 0);
-    display.println("MUTE |     |     |LIT");
-    display.println("");
-    display.println("VOL- |VOL+ |     |   ");
-    display.println("");
-    display.println(" MIC |HAND |     |   ");
-    display.println("");
     display.display();
 }
