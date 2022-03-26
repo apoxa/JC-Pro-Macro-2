@@ -11,16 +11,17 @@
 // This is the delay after each keypress
 #define KEYDELAY 100
 
-bool SW1 = false; // encoder button
-bool SW2 = false; // lower-left keyswitch
-bool SW3 = false;
-bool SW4 = false;
-bool SW5 = false;
-bool SW6 = false;
-bool SW7 = false; // upper-right keyswitch
-bool SW8 = false;
-bool SW9 = false;  // lower-right keyswitch
-bool SW10 = false; // JCPM 2 mode switch
+#include <ezButton.h>
+ezButton SW1(4);
+ezButton SW2(15);
+ezButton SW3(A0);
+ezButton SW4(A1);
+ezButton SW5(A2);
+ezButton SW6(A3);
+ezButton SW7(14);
+ezButton SW8(16);
+ezButton SW9(10);
+ezButton SW10(8);
 
 bool underLight = false;
 
@@ -154,18 +155,6 @@ void setup()
     // No TX and RX leds, please.
     pinMode(LED_BUILTIN_TX, INPUT);
     pinMode(LED_BUILTIN_RX, INPUT);
-    pinMode(4, INPUT_PULLUP);  // SW1 pushbutton (encoder button)
-    pinMode(15, INPUT_PULLUP); // SW2 pushbutton
-    pinMode(A0, INPUT_PULLUP); // SW3 pushbutton
-    pinMode(A1, INPUT_PULLUP); // SW4 pushbutton
-    pinMode(A2, INPUT_PULLUP); // SW5 pushbutton
-    pinMode(A3, INPUT_PULLUP); // SW6 pushbutton
-    //===============new pins for JCPM
-
-    pinMode(14, INPUT_PULLUP); // SW7 pushbutton
-    pinMode(16, INPUT_PULLUP); // SW8 pushbutton
-    pinMode(10, INPUT_PULLUP); // SW9 pushbutton
-    pinMode(8, INPUT_PULLUP);  // SW10 pushbutton - acts as mode switch
 
     //================end new pins
 
@@ -189,25 +178,24 @@ void setup()
 
 void loop()
 {
-    // By inverting the values I can use true for a pressed button instead of false, since these are INPUT_PULLUP.
-    SW1 = !digitalRead(4);
-    SW2 = !digitalRead(15);
-    SW3 = !digitalRead(A0);
-    SW4 = !digitalRead(A1);
-    SW5 = !digitalRead(A2);
-    SW6 = !digitalRead(A3);
-    SW7 = !digitalRead(14);
-    SW8 = !digitalRead(16);
-    SW9 = !digitalRead(10);
-    SW10 = !digitalRead(8);
+    SW1.loop();
+    SW2.loop();
+    SW3.loop();
+    SW4.loop();
+    SW5.loop();
+    SW6.loop();
+    SW7.loop();
+    SW8.loop();
+    SW9.loop();
+    SW10.loop();
 
     serial_commands_.ReadSerial();
 
     // Switch to program mode if left bottom and top right button are pressed at the same time
-    if (SW2 && SW7)
+    if (SW2.isPressed() && SW7.isPressed())
     {
         screenBig("Upload Code!");
-        delay(600); // Wait for 10 minutes to reprogram, should be more than enough
+        delay(600000); // Wait for 10 minutes to reprogram, should be more than enough
     }
 
     newPosition = myEnc.read();
@@ -223,7 +211,7 @@ void loop()
 
     //=========change mode=================
 
-    if (SW10)
+    if (SW10.isPressed())
     {
         if (inputModeIndex < modeArrayLength)
         {
@@ -269,20 +257,20 @@ void volume()
     }
     increment = decrement = false;
 
-    if (SW1)
+    if (SW1.isPressed())
     {
         Consumer.write(MEDIA_VOLUME_MUTE);
         delay(KEYDELAY);
     }
 
-    if (SW6)
+    if (SW6.isPressed())
     { // tab to next browser tab Firefox or Chrome
         Keyboard.press(KEY_LEFT_CTRL);
         Keyboard.press(KEY_TAB);
         Keyboard.releaseAll();
         delay(KEYDELAY);
     }
-    if (SW5)
+    if (SW5.isPressed())
     { // tab to previous browser tab Firefox or Chrome
         Keyboard.press(KEY_LEFT_SHIFT);
         Keyboard.press(KEY_LEFT_CTRL);
@@ -290,7 +278,7 @@ void volume()
         Keyboard.releaseAll();
         delay(KEYDELAY);
     }
-    if (SW3)
+    if (SW3.isPressed())
     {
         Keyboard.press(KEY_LEFT_CTRL);
         Keyboard.press(KEY_LEFT_ALT);
@@ -299,7 +287,7 @@ void volume()
         Keyboard.releaseAll();
         delay(KEYDELAY);
     }
-    if (SW2)
+    if (SW2.isPressed())
     {
         Keyboard.press(KEY_LEFT_CTRL);
         Keyboard.press(KEY_LEFT_ALT);
@@ -309,7 +297,7 @@ void volume()
         delay(KEYDELAY);
     }
 
-    if (SW7)
+    if (SW8.isPressed())
     {
         uint8_t r = (!underLight) ? 140 : 0;
         uint8_t g = (!underLight) ? 0 : 0;
