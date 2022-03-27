@@ -11,6 +11,9 @@
 // This is the delay after each keypress
 #define KEYDELAY 100
 
+#include <Arduino.h>
+#include <HID-Project.h>
+
 #include <ezButton.h>
 ezButton SW1(4);
 ezButton SW2(15);
@@ -24,11 +27,8 @@ ezButton SW9(10);
 ezButton SW10(8);
 
 bool underLight = false;
-
 bool increment = false;
 bool decrement = false;
-long oldPosition;
-long newPosition;
 int inputMode = 0;
 
 int modeArray[] = {0, 1}; // adjust this array to modify sequence of modes - as written, change to {0, 1, 2, 3, 4, 5} to access all modes
@@ -40,9 +40,9 @@ char serial_command_buffer_[128];
 SerialCommands serial_commands_(&Serial, serial_command_buffer_, sizeof(serial_command_buffer_), "\r\n", " ");
 
 // Encoder setup =============================================
-
+// This optional setting causes Encoder to use more optimized code
+#define ENCODER_OPTIMIZE_INTERRUPTS
 #include <Encoder.h>
-#include <HID-Project.h>
 Encoder myEnc(1, 0); // if rotation is backwards, swap 0 and 1
 
 // Screen setup =============================================
@@ -198,7 +198,8 @@ void loop()
         delay(600000); // Wait for 10 minutes to reprogram, should be more than enough
     }
 
-    newPosition = myEnc.read();
+    static int oldPosition = 0;
+    int newPosition = myEnc.read();
     if (newPosition > (oldPosition + 2))
     {
         increment = true;
@@ -248,12 +249,10 @@ void volume()
     if (increment)
     {
         Consumer.write(MEDIA_VOLUME_UP);
-        delay(KEYDELAY);
     }
     else if (decrement)
     {
         Consumer.write(MEDIA_VOLUME_DOWN);
-        delay(KEYDELAY);
     }
     increment = decrement = false;
 
