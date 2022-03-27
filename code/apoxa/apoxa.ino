@@ -211,16 +211,15 @@ void loop()
 
     if (SW10.isPressed())
     {
-        if (inputModeIndex < modeArrayLength)
-        {
-            inputModeIndex++;
-            inputMode = modeArray[inputModeIndex];
+        switch(inputModeIndex < modeArrayLength - 1) {
+            case true:
+                inputModeIndex++;
+                break;
+            default:
+                inputModeIndex = 0;
+                break;
         }
-        if (inputModeIndex == modeArrayLength)
-        {
-            inputModeIndex = 0;
-            inputMode = modeArray[inputModeIndex];
-        }
+        inputMode = modeArray[inputModeIndex];
         pixels.clear();
         pixels.show();
         delay(KEYDELAY);
