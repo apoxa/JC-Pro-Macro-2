@@ -30,11 +30,9 @@ ezButton SW10(8);
 bool underLight = false;
 bool increment = false;
 bool decrement = false;
-int inputMode = 0;
 
-int modeArray[] = {0, 1}; // adjust this array to modify sequence of modes - as written, change to {0, 1, 2, 3, 4, 5} to access all modes
-int inputModeIndex = 0;
-int modeArrayLength = (sizeof(modeArray) / sizeof(modeArray[0]));
+char modeArray[] = {0, 1}; // adjust this array to modify sequence of modes - as written, change to {0, 1, 2, 3, 4, 5} to access all modes
+const char modeArrayLength = (sizeof(modeArray) / sizeof(modeArray[0]));
 
 #include <SerialCommands.h>
 char serial_command_buffer_[128];
@@ -208,7 +206,8 @@ void loop()
     oldPosition = newPosition;
 
     //=========change mode=================
-
+    static char inputMode = 0;
+    static char inputModeIndex = 0;
     if (SW10.isPressed())
     {
         switch(inputModeIndex < modeArrayLength - 1) {
