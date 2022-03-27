@@ -324,7 +324,7 @@ void jiggler()
     }
     pixels.show(); // Show results
 
-    screenBig("Rando Mouse!");
+    screenBig("Rando\nMouse!");
 }
 
 //======================.96" oled screen=======================
