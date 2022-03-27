@@ -10,6 +10,7 @@
 // #define DEBUG
 // This is the delay after each keypress
 #define KEYDELAY 100
+#define SSD1306_NO_SPLASH
 
 #include <Arduino.h>
 #include <HID-Project.h>
@@ -77,8 +78,6 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 // strips you might need to change the third parameter -- see the
 // strandtest example for more information on possible values.
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
-
-#define DELAYVAL 500 // Time (in milliseconds) to pause between pixels
 
 //============================================================
 
@@ -155,8 +154,6 @@ void setup()
     // No TX and RX leds, please.
     pinMode(LED_BUILTIN_TX, INPUT);
     pinMode(LED_BUILTIN_RX, INPUT);
-
-    //================end new pins
 
     randomSeed(analogRead(A9));
 
