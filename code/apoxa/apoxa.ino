@@ -305,6 +305,13 @@ void volume()
         delay(KEYDELAY);
     }
 
+    if (SW9.isPressed())
+    {
+        Keyboard.press(KEY_NUM_LOCK);
+        Keyboard.releaseAll();
+        delay(KEYDELAY);
+    }
+
     screenVolume();
 }
 
@@ -334,11 +341,11 @@ void screenVolume()
     display.setTextSize(1);
     display.clearDisplay();
     display.setCursor(0, 0);
-    display.println("MUTE |     |TAB+ |LIT");
+    display.println("MUTE |     |TAB+ |   ");
     display.println("");
-    display.println("VOL- |VOL+ |TAB- |   ");
+    display.println("VOL- |VOL+ |TAB- |LIT");
     display.println("");
-    display.println("MUTE |HAND |     |   ");
+    display.println("MUTE |HAND |     |NLK");
     display.display();
 }
 
