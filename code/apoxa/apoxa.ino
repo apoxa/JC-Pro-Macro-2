@@ -208,6 +208,7 @@ void loop()
     //=========change mode=================
     static char inputMode = 0;
     static char inputModeIndex = 0;
+    static char inputChanged = true;
     if (SW10.isPressed())
     {
         switch(inputModeIndex < modeArrayLength - 1) {
@@ -219,6 +220,7 @@ void loop()
                 break;
         }
         inputMode = modeArray[inputModeIndex];
+        inputChanged = true;
         pixels.clear();
         pixels.show();
         delay(KEYDELAY);
@@ -229,14 +231,19 @@ void loop()
     switch (inputMode)
     {
     case 0:
+        if (inputChanged)
+            screenVolume();
         volume();
         break;
     case 1:
+        if (inputChanged)
+            screenBig("Rando\nMouse");
         jiggler();
         break;
     default:
         break;
     }
+    inputChanged = false;
 }
 
 void volume()
@@ -311,8 +318,6 @@ void volume()
         Keyboard.releaseAll();
         delay(KEYDELAY);
     }
-
-    screenVolume();
 }
 
 void jiggler()
@@ -330,8 +335,6 @@ void jiggler()
         pixels.setPixelColor(i, xMap, yMap, zMap);
     }
     pixels.show(); // Show results
-
-    screenBig("Rando\nMouse!");
 }
 
 //======================.96" oled screen=======================
