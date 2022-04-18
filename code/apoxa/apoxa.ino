@@ -187,7 +187,7 @@ void loop()
     serial_commands_.ReadSerial();
 
     // Switch to program mode if left bottom and top right button are pressed at the same time
-    if (SW2.isPressed() && SW7.isPressed())
+    if (!SW2.getState() && !SW7.getState())
     {
         screenBig("Upload Code!");
         delay(600000); // Wait for 10 minutes to reprogram, should be more than enough
