@@ -244,6 +244,7 @@ void loop()
         break;
     }
     inputChanged = false;
+    delay(KEYDELAY); // This is needed for the encoder to recognise the 2-step changes
 }
 
 void volume()
