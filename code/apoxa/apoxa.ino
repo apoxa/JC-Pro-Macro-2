@@ -9,7 +9,7 @@
 // DEBUG enables some serial debugging messages
 // #define DEBUG
 // This is the delay after each keypress
-#define KEYDELAY 100
+#define KEYDELAY 70
 #define SSD1306_NO_SPLASH
 
 #include <Arduino.h>
@@ -28,8 +28,8 @@ ezButton SW9(10);
 ezButton SW10(8);
 
 bool underLight = false;
-bool increment = false;
-bool decrement = false;
+unsigned char increment = 0;
+unsigned char decrement = 0;
 
 char modeArray[] = {0, 1}; // adjust this array to modify sequence of modes - as written, change to {0, 1, 2, 3, 4, 5} to access all modes
 const char modeArrayLength = (sizeof(modeArray) / sizeof(modeArray[0]));
@@ -197,11 +197,11 @@ void loop()
     int newPosition = myEnc.read();
     if (newPosition > (oldPosition + 2))
     {
-        increment = true;
+        increment = getEncoderValue();
     }
     else if (newPosition < (oldPosition - 2))
     {
-        decrement = true;
+        decrement = getEncoderValue();
     }
     oldPosition = newPosition;
 
@@ -211,13 +211,14 @@ void loop()
     static char inputChanged = true;
     if (SW10.isPressed())
     {
-        switch(inputModeIndex < modeArrayLength - 1) {
-            case true:
-                inputModeIndex++;
-                break;
-            default:
-                inputModeIndex = 0;
-                break;
+        switch (inputModeIndex < modeArrayLength - 1)
+        {
+        case true:
+            inputModeIndex++;
+            break;
+        default:
+            inputModeIndex = 0;
+            break;
         }
         inputMode = modeArray[inputModeIndex];
         inputChanged = true;
@@ -247,17 +248,29 @@ void loop()
     delay(KEYDELAY); // This is needed for the encoder to recognise the 2-step changes
 }
 
+unsigned char getEncoderValue()
+{
+    static unsigned long lastWheelClick = 0;
+    unsigned long currentTime = millis();
+    unsigned char EncoderValue = 0;
+    if (currentTime - lastWheelClick > 80) {
+        EncoderValue = 1;
+    } else if (currentTime - lastWheelClick > 35) {
+        EncoderValue = 2;
+    } else {
+        EncoderValue = 4;
+    }
+    lastWheelClick = currentTime;
+    return EncoderValue;
+}
+
 void volume()
 {
-    if (increment)
-    {
+    for (unsigned char i = 0; i < increment; i++)
         Consumer.write(MEDIA_VOLUME_UP);
-    }
-    else if (decrement)
-    {
+    for (unsigned char i = 0; i < decrement; i++)
         Consumer.write(MEDIA_VOLUME_DOWN);
-    }
-    increment = decrement = false;
+    increment = decrement = 0;
 
     if (SW1.isPressed())
     {
