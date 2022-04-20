@@ -211,15 +211,7 @@ void loop()
     static char inputChanged = true;
     if (SW10.isPressed())
     {
-        switch (inputModeIndex < modeArrayLength - 1)
-        {
-        case true:
-            inputModeIndex++;
-            break;
-        default:
-            inputModeIndex = 0;
-            break;
-        }
+        inputModeIndex = (inputModeIndex < modeArrayLength - 1) ? inputModeIndex + 1 : 0;
         inputMode = modeArray[inputModeIndex];
         inputChanged = true;
         pixels.clear();
@@ -253,11 +245,16 @@ unsigned char getEncoderValue()
     static unsigned long lastWheelClick = 0;
     unsigned long currentTime = millis();
     unsigned char EncoderValue = 0;
-    if (currentTime - lastWheelClick > 80) {
+    if (currentTime - lastWheelClick > 80)
+    {
         EncoderValue = 1;
-    } else if (currentTime - lastWheelClick > 35) {
+    }
+    else if (currentTime - lastWheelClick > 35)
+    {
         EncoderValue = 2;
-    } else {
+    }
+    else
+    {
         EncoderValue = 4;
     }
     lastWheelClick = currentTime;
