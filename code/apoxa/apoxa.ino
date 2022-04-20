@@ -138,12 +138,19 @@ void cmd_led(SerialCommands *sender)
     pixels.show();
 }
 
+void cmd_display(SerialCommands *sender) {
+    char *displayStr = sender->Next();
+    screenBig(displayStr);
+}
+
 SerialCommand cmd_led_("LED", cmd_led);
+SerialCommand cmd_display_("DISPLAY", cmd_display);
 
 void setup()
 {
     Serial.begin(57600);
     serial_commands_.AddCommand(&cmd_led_);
+    serial_commands_.AddCommand(&cmd_display_);
     serial_commands_.SetDefaultHandler(&cmd_unrecognized);
     // No TX and RX leds, please.
     pinMode(LED_BUILTIN_TX, INPUT);
