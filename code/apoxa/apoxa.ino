@@ -302,9 +302,9 @@ void volume()
         delay(KEYDELAY);
     }
 
-    static bool underLight = false;
     if (SW8.isPressed())
     {
+        static bool underLight = false;
         uint8_t r = (!underLight) ? 140 : 0;
         uint8_t g = (!underLight) ? 0 : 0;
         uint8_t b = (!underLight) ? 130 : 0;
