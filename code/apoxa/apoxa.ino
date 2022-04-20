@@ -69,7 +69,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define PIN 5 // On Trinket or Gemma, suggest changing this to 1
 
 // How many NeoPixels are attached to the Arduino?
-#define NUMPIXELS 15 // Popular NeoPixel ring size
+#define NUMPIXELS 12 // Popular NeoPixel ring size
 
 // When setting up the NeoPixel library, we tell it how many pixels,
 // and which pin to use to send signals. Note that for older NeoPixel
