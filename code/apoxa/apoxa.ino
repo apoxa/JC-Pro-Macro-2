@@ -81,7 +81,7 @@ Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
 void cmd_unrecognized(SerialCommands *sender, const char *cmd)
 {
-    sender->GetSerial()->print("ERROR: Unrecognized command [");
+    sender->GetSerial()->print("E: unknown cmd [");
     sender->GetSerial()->print(cmd);
     sender->GetSerial()->println("]");
 }
