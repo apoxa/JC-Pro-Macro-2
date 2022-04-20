@@ -333,11 +333,11 @@ void volume()
 
 void jiggler()
 {
-    // Serial.print("commence to jiggling");
-    long randNumber = random(-50, 50);
-    long randNumber1 = random(-50, 50);
-    Mouse.move(randNumber, randNumber1);
-    delay(100);
+#ifdef DEBUG
+    Serial.print("commence to jiggling");
+#endif
+    Mouse.move(random(-50, 50), random(-50, 50));
+    delay(KEYDELAY);
     for (int i = 0; i <= 7; i++)
     {
         int xMap = map(random(-50, 50), -50, 50, 0, 100);
