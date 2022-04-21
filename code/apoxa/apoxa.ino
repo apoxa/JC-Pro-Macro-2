@@ -27,6 +27,10 @@ ezButton SW8(16);
 ezButton SW9(10);
 ezButton SW10(8);
 
+bool underLight = false;
+unsigned char increment = 0;
+unsigned char decrement = 0;
+
 char modeArray[] = {0, 1}; // adjust this array to modify sequence of modes - as written, change to {0, 1, 2, 3, 4, 5} to access all modes
 const char modeArrayLength = (sizeof(modeArray) / sizeof(modeArray[0]));
 
@@ -196,6 +200,18 @@ void loop()
         delay(600000); // Wait for 10 minutes to reprogram, should be more than enough
     }
 
+    static int oldPosition = 0;
+    int newPosition = myEnc.read();
+    if (newPosition > (oldPosition + 2))
+    {
+        increment = getEncoderValue();
+    }
+    else if (newPosition < (oldPosition - 2))
+    {
+        decrement = getEncoderValue();
+    }
+    oldPosition = newPosition;
+
     //=========change mode=================
     static char inputMode = 0;
     static char inputModeIndex = 0;
@@ -254,20 +270,11 @@ unsigned char getEncoderValue()
 
 void volume()
 {
-    static int oldPosition = 0;
-    int newPosition = myEnc.read();
-    if (newPosition > (oldPosition + 2))
-    {
-        for (unsigned char i = 0; i < getEncoderValue(); i++)
-            Consumer.write(MEDIA_VOLUME_UP);
-    }
-    else if (newPosition < (oldPosition - 2))
-    {
-        for (unsigned char i = 0; i < getEncoderValue(); i++)
-            Consumer.write(MEDIA_VOLUME_DOWN);
-
-    }
-    oldPosition = newPosition;
+    for (unsigned char i = 0; i < increment; i++)
+        Consumer.write(MEDIA_VOLUME_UP);
+    for (unsigned char i = 0; i < decrement; i++)
+        Consumer.write(MEDIA_VOLUME_DOWN);
+    increment = decrement = 0;
 
     if (SW1.isPressed())
     {
