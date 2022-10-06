@@ -1,0 +1,8 @@
+Found device at /Volumes/CIRCUITPY, running CircuitPython 7.3.3.
+adafruit_displayio_ssd1306==1.5.9
+adafruit_pixelbuf==1.1.8
+neopixel==6.3.6
+adafruit_bitmap_font==1.5.11
+adafruit_display_text==2.22.11
+adafruit_hid==5.3.3
+adafruit_led_animation==2.5.20
