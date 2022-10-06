@@ -1,4 +1,5 @@
 .ONESHELL:
+DEVICE_PATH := $(shell python3 find_device.py)
 
 bootstrap: requirements.txt ## make bootstrap # Install python virtualenv and source it
 	@python3 -mvenv .venv
@@ -6,6 +7,7 @@ bootstrap: requirements.txt ## make bootstrap # Install python virtualenv and so
 	pip install -r requirements.txt
 
 install: bootstrap
+	cp code.py $(DEVICE_PATH)
 	circup install -r requirements.circup.txt
 
 devinstall: bootstrap
