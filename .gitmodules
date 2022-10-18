@@ -1,0 +1,3 @@
+[submodule "code/apoxa/RP2040/ext/circuitpython-utilities"]
+	path = code/apoxa/RP2040/ext/circuitpython-utilities
+	url = https://github.com/kvc0/circuitpython-utilities

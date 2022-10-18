@@ -7,7 +7,8 @@ bootstrap: requirements.txt ## make bootstrap # Install python virtualenv and so
 	pip install -r requirements.txt
 
 install: bootstrap
-	cp code.py $(DEVICE_PATH)
+	cp code.py $(DEVICE_PATH)/code.py
+	cp -rp cpy_rotary/ $(DEVICE_PATH)/cpy_rotary/
 	circup install -r requirements.circup.txt
 
 devinstall: bootstrap
